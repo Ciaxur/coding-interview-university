@@ -1,6 +1,7 @@
 .idea
 *.iml
 personal-9894.md
+.vscode
 
 # Targets Windows & Unix temporary files
 ~$*
