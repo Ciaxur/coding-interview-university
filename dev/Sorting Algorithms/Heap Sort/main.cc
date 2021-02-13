@@ -4,7 +4,7 @@
 
 vector<int> HeapSort(vector<int> array) {
   fmt::print("Constructing Array: "); print(array);
-  Heap h(array);
+  Heap<> h(array);
   fmt::print("Heap Sort = ");
   print_array(h.get_array(), 0, h.get_size());
 

@@ -1,7 +1,7 @@
 #include "Heap.hpp"
 
 int main() {
-  Heap h({7, 3, 4, 9, 1, 2});
+  Heap<> h({7, 3, 4, 9, 1, 2});
 
   cout << "BEFORE:\n";
   print(h.get_array());

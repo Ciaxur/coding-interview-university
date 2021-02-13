@@ -5,9 +5,9 @@ using namespace std;
 
 // Swaps values of a and b
 void swap (int &a, int &b) { 
-  a = a ^ b;
-  b = a ^ b;
-  a = a ^ b;
+  int temp = a;
+  a = b;
+  b = temp;
 }
 
 // Prints Range of Array
@@ -26,15 +26,39 @@ void print(vector<int> &vec) {
 
 
 // Implementation of Max-Heap & Min-Heap
+template < typename Comparator = bool(*)(const int&, const int&) >
 class Heap {
 private:
   vector<int> data;
+  // bool (*cmp)(const int&, const int&);
+  Comparator *cmp;
+
+  // Default Comparitor
+  static bool _default_cmp(const int &left, const int &right) {
+    return left < right;
+  }
 
 public:
   enum HeapType { MIN, MAX };
+  
+  // Init with Default Comparator & Data
   Heap(vector<int> arr): data(arr) {
     heap_sort(data);
+    cmp = nullptr;
   };
+
+  // Init with Comparator
+  Heap(Comparator &_cmp): data({}), cmp(&_cmp) {}
+
+  // Init with Comparator & Data
+  Heap(Comparator &_cmp, vector<int> _data): data(_data), cmp(&_cmp) {}
+
+  /**
+   * Sets a Comparator for how to sort
+   */
+  void setComparator(Comparator &_cmp) {
+    this->cmp = &_cmp;
+  }
 
   /**
    * Returns the Number of elements stored
@@ -81,7 +105,11 @@ public:
     for (int i = data.size() - 1; i > 0; i--) {
       int parent = (i - ((i + 1) % 2)) / 2;
 
-      if (data[parent] < data[i])
+      bool result = cmp != nullptr 
+        ? (*cmp)(data[parent], data[i]) 
+        : _default_cmp(data[parent], data[i]);
+
+      if (result)
         swap(data[parent], data[i]);
     }
   }
