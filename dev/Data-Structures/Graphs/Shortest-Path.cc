@@ -13,62 +13,28 @@ struct VertexMeta {
   VertexMeta() {}
 };
 
-namespace MinHeap {
-  
-void swap (int &a, int &b) {
-  int temp = a;
-  a = b;
-  b = temp;
-}
-
-void heapify(vector<int> &arr, unordered_map<int, VertexMeta> &meta, int i = 0) {
-  // Base Case
-  int j = arr.size() - 1;
-  if (i >= j - 1)
-    return;
-
-  // Bubble Down until Sorted
-  // Compare Children
-  int left = (2 * (i + 1)) - 1;
-  int right = 2 * (i + 1);
-
-  // One Child
-  if (right > j) {
-    if (meta.at(arr[left]).dist > meta.at(arr[i]).dist) {
-      MinHeap::swap(arr[left], arr[i]);
-      heapify(arr, meta, left);
-    }
-  }
-
-  else if ((meta.at(arr[left]).dist > meta.at(arr[right]).dist) && meta.at(arr[left]).dist > meta.at(arr[i]).dist) {
-    MinHeap::swap(arr[left], arr[i]);
-    heapify(arr, meta, left);
-  }
-
-  else if ((meta.at(arr[right]).dist > meta.at(arr[left]).dist) && meta.at(arr[right]).dist > meta.at(arr[i]).dist) {
-    MinHeap::swap(arr[right], arr[i]);
-    heapify(arr, meta, right);
-  }
-}
-
-void heap_sort(vector<int> &arr, unordered_map<int, VertexMeta> &meta) {
-  for (int j = arr.size() - 1; j > 0; j--) {
-    MinHeap::swap(arr[0], arr[j]);
-    MinHeap::heapify(arr, meta);
-  }
-}
-
-}; // namespace MinHeap
-
-
-
-void dijkstra(vector<Vertex<int>> &graph, Vertex<int> *source) {
+/**
+ * Runs Dijkstra's algorithm in search of the end node (target) in the
+ *  given graph, returning a map of collected graph data.
+ * Target is implicitly given as the graph's last node
+ * @param graph Reference to the overall graph
+ * @param source Pointer to the source vertex
+ * @param debugPrints (Optional) Flag to output debug prints
+ * @return Map of collected map data
+ */
+unordered_map<int, VertexMeta> dijkstra(vector<Vertex<int>> &graph, Vertex<int> *source, bool debugPrints = false) {
   // Data Tracking Containers
   unordered_map<int, VertexMeta> vertData;
+  auto indexInVector = [](vector<int> &v, int i) {
+    for (const int &elt : v)
+      if (elt == i) return true;
+    return false;
+  };
+  
 
   // Construct Min-Heap with Comparator
   auto cmp = [&](const int &left, const int &right) {
-    return vertData.at(left).dist < vertData.at(right).dist;
+    return vertData.at(left).dist > vertData.at(right).dist;
   };
   Heap<decltype(cmp)> Q(cmp);
   
@@ -93,18 +59,36 @@ void dijkstra(vector<Vertex<int>> &graph, Vertex<int> *source) {
   // Start the Algo!
   while (!Q.is_empty()) {
     // Best Vertex
-    auto vmeta = vertData[Q.extract_max()];
-    fmt::print("Extracted v{} with distance {}\n", vmeta.vertex->_id, vmeta.dist);
+    auto vmeta = vertData.at(Q.extract_max());
 
     // Check neighbors thar are still in Q
     for (const int &neighborID : vmeta.vertex->edges) {
       // Only ones that are in Q
-      if (Q.get_array())
+      if (vmeta.dist != numeric_limits<int>::max()) {
+        if (indexInVector(Q.get_array(), neighborID)) {
+          // Calculate the Score of taking the path of the Node
+          int score = vmeta.dist + vertData.at(neighborID).vertex->weight;
+          if (debugPrints) {
+            fmt::print("{} to {} new score of '{}'\n", vmeta.vertex->_id, neighborID, score);
+            fmt::print(" score = {} | u.dist = {}'\n", score, vertData.at(neighborID).dist);
+          }
 
+          if (score < vertData.at(neighborID).dist) {
+            vertData[neighborID].dist = score;
+            vertData[neighborID].prev = vmeta.vertex;
+
+            if (debugPrints) fmt::print("  Added {} with score of {}\n", neighborID, score);
+            Q.insert(neighborID);
+          }
+        }
+      }
     }
-    
   }
+
+  // Return collected data
+  return vertData;
 }
+
 
 int main() {
   // Dijkstra Test
@@ -139,7 +123,30 @@ int main() {
   });
 
   // printGraph(graph);
-  dijkstra(graph, &graph[0]);
+  auto vertData = dijkstra(graph, &graph[0]);
+
+
+  // Output Result
+  fmt::print("\n=== RESULT ===\n");
+  Vertex<int> *v = vertData.at(graph.back()._id).vertex;
+  queue<int> Q;
+  while(v) {
+    Q.push(v->_id);
+
+    fmt::print("{} ", v->_id);
+    v = vertData.at(v->_id).prev;
+    if (v)
+      fmt::print("-> ");
+  }
+  
+  fmt::print("\n\n=== DISTANCE ===\n");
+  while(!Q.empty()) {
+    fmt::print("{} ", vertData.at(Q.front()).dist);
+    Q.pop();
+    if (!Q.empty())
+      fmt::print("-> ");
+  }
+  fmt::print("\n\nDONE :)");
 
   return 0;
 }
