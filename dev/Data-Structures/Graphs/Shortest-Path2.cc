@@ -1,10 +1,14 @@
 /**
- * Shortest Path implemented using custom created Heap
+ * Shortest Path implemented with C++'s STL heap methods
+ *  from the Algorithm Library
  */
 
 #include <unordered_map>
 #include "Vertex.hpp"
-#include "Trees/Heap/Heap.hpp"
+#include <algorithm>
+#include <queue>
+using namespace std;
+
 
 struct VertexMeta {
   Vertex<int> *vertex;    // Vertex Itself
@@ -17,15 +21,6 @@ struct VertexMeta {
   VertexMeta() {}
 };
 
-/**
- * Runs Dijkstra's algorithm in search of the end node (target) in the
- *  given graph, returning a map of collected graph data.
- * Target is implicitly given as the graph's last node
- * @param graph Reference to the overall graph
- * @param source Pointer to the source vertex
- * @param debugPrints (Optional) Flag to output debug prints
- * @return Map of collected map data
- */
 unordered_map<int, VertexMeta> dijkstra(vector<Vertex<int>> &graph, Vertex<int> *source, bool debugPrints = false) {
   // Data Tracking Containers
   unordered_map<int, VertexMeta> vertData;
@@ -34,13 +29,13 @@ unordered_map<int, VertexMeta> dijkstra(vector<Vertex<int>> &graph, Vertex<int> 
       if (elt == i) return true;
     return false;
   };
-  
 
-  // Construct Min-Heap with Comparator
+  // Comparitor and Heap
   auto cmp = [&](const int &left, const int &right) {
     return vertData.at(left).dist > vertData.at(right).dist;
   };
-  Heap<decltype(cmp)> Q(cmp);
+  vector<int> Q;
+  
   
   // Construct the Map, setting discovery data
   for (Vertex<int> &v : graph) {
@@ -54,42 +49,43 @@ unordered_map<int, VertexMeta> dijkstra(vector<Vertex<int>> &graph, Vertex<int> 
     });
 
     // Add to Queue
-    Q.insert(v._id);
+    Q.push_back(v._id);
+    push_heap(Q.begin(), Q.end(), cmp);
   }
 
-  // Initialize Source's initial Distance
+  // Init source's Distance
   vertData.at(source->_id).dist = 0;
-  
-  // Start the Algo!
-  while (!Q.is_empty()) {
+
+  // Start the algo!
+  while (!Q.empty()) {
     // Best Vertex
-    auto vmeta = vertData.at(Q.extract_max());
+    auto vmeta = vertData.at(Q.front());
+    pop_heap(Q.begin(), Q.end(), cmp);
+    Q.pop_back();
 
-    // Check neighbors thar are still in Q
-    for (const int &neighborID : vmeta.vertex->edges) {
-      // Only ones that are in Q
-      if (vmeta.dist != numeric_limits<int>::max()) {
-        if (indexInVector(Q.get_array(), neighborID)) {
-          // Calculate the Score of taking the path of the Node
-          int score = vmeta.dist + vertData.at(neighborID).vertex->weight;
-          if (debugPrints) {
-            fmt::print("{} to {} new score of '{}'\n", vmeta.vertex->_id, neighborID, score);
-            fmt::print(" score = {} | u.dist = {}'\n", score, vertData.at(neighborID).dist);
-          }
+    // Check neighbors that are also in Q
+    for (const int &neighborID: vmeta.vertex->edges) {
+      if (indexInVector(Q, neighborID)) {
+        // Calculate the Score of taking the path of the Node
+        int score = vmeta.dist + vertData.at(neighborID).vertex->weight;
+        if (debugPrints) {
+          fmt::print("{} to {} new score of '{}'\n", vmeta.vertex->_id, neighborID, score);
+          fmt::print(" score = {} | u.dist = {}'\n", score, vertData.at(neighborID).dist);
+        }
 
-          if (score < vertData.at(neighborID).dist) {
-            vertData[neighborID].dist = score;
-            vertData[neighborID].prev = vmeta.vertex;
+        if (score < vertData.at(neighborID).dist) {
+          vertData[neighborID].dist = score;
+          vertData[neighborID].prev = vmeta.vertex;
 
-            if (debugPrints) fmt::print("  Added {} with score of {}\n", neighborID, score);
-            Q.insert(neighborID);
-          }
+          if(debugPrints) fmt::print("  Added {} with score of {}\n", neighborID, score);
+          Q.push_back(neighborID);
+          push_heap(Q.begin(), Q.end(), cmp);
         }
       }
     }
   }
 
-  // Return collected data
+  // Return Collected Data
   return vertData;
 }
 
@@ -126,10 +122,8 @@ int main() {
     {22,23,24}
   });
 
-  // printGraph(graph);
   auto vertData = dijkstra(graph, &graph[0]);
-
-
+  
   // Output Result
   fmt::print("\n=== RESULT ===\n");
   Vertex<int> *v = vertData.at(graph.back()._id).vertex;
